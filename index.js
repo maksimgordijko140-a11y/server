@@ -67,4 +67,4 @@ app.post("/user/log", (req, res) => {
 })
 
 
-app.listen(port, '0.0.0.0', () => console.log('Server starting on port 3000'));
+app.listen(port, '0.0.0.0', () => console.log(`Server starting on port ${port}`));
