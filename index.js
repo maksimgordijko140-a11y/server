@@ -35,6 +35,7 @@ app.post('/user/api', jsonParcer, (req, res) => {
 app.post('/user/reg', (req, res) => {
     const login = req.body.login;
     const password = req.body.password
+    console.log(login, password)
     const sql = db.prepare("INSERT INTO users (login, password) VALUES(?, ?)").run(login, password)
     res.json({
         reg: true,
