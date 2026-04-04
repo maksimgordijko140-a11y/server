@@ -10,7 +10,7 @@ const corsOptions = {
     origin: 'https://maksimgordijko140-a11y.github.io/reg/',
     optionsSuccessStatus: 200
 }
-app.use(cors(corsOptions))
+app.use(cors())
 
 app.use(express.json());
 const jsonParcer = express.json()
