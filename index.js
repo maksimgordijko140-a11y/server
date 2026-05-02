@@ -1,75 +1,90 @@
-const express = require('express');
-
+const express = require('express')
+const cors = require('cors')
+const app = express()
+const PORT = process.env.PORT || 3000
 const Database = require('better-sqlite3')
-
-const app = express();
-
-const port = process.env.PORT || 3000
-const cors = require("cors")
-const corsOptions = {
-    origin: 'https://maksimgordijko140-a11y.github.io',
-    optionsSuccessStatus: 200
-}
-app.use(cors(corsOptions))
-
-app.use(express.json());
-const jsonParcer = express.json()
 const db = new Database("./users.db")
+const db_two = new Database("./tranzactions.db")
 
 db.exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT NOT NULL, password TEXT NOT NULL)")
+db_two.exec("CREATE TABLE IF NOT EXISTS tranzactions(id INTEGER PRIMARY KEY AUTOINCREMENT, tranzaction INTEGER NOT NULL)")
 
-app.post('/user/api', jsonParcer, (req, res) => {
-    const id = req.body.id
-    console.log(id)
-    const selectId = db.prepare("SELECT * FROM users WHERE id = ?").get(id)
-    try {
+
+app.use(cors())
+app.use(express.json())
+
+app.get("/api/users/:id", (req, res) => {
+    const {id} = req.params
+    const sql = db.prepare("SELECT login, password FROM users WHERE id = ?").get(id)
+    if (sql) {
         res.json({
-            login: selectId.login,
-            password: selectId.password,
-            reg: true
+            login: sql.login,
+            password: sql.password,
+            isLogin: true
         })
-    }
-    catch {
+    }  
+    else{
         res.json({
-            reg: false
+            isLogin: false
         })
     }
 })
 
-app.post('/user/reg', (req, res) => {
-    const login = req.body.login;
-    const password = req.body.password
-    console.log(login, password)
-    const sql = db.prepare("INSERT INTO users (login, password) VALUES(?, ?)").run(login, password)
+app.get("/api/tranzactions/sum/:id", (req, res) => {
+    const {id} = req.params
+    console.log(id)
+    const sql = db_two.prepare("SELECT tranzaction FROM tranzactions WHERE id = ?").get(id)
+    console.log(sql.tranzaction)
     res.json({
-        reg: true,
-        id : sql.lastInsertRowid,
-        login: login,
-        password: password
+        tranzaction: sql.tranzaction
     })
-});
+})
 
-
-
-app.post("/user/log", (req, res) => {
-    const login = req.body.login
-    const password = req.body.password
-    const sql = db.prepare("SELECT * FROM users WHERE login = ? AND password = ?").all(login, password)
-    const selectId = db.prepare("SELECT id FROM users WHERE login = ? AND password = ?").get(login, password)
-    if (sql.length === 0) {
+app.post("/api/tranzactions/add", (req, res) => {
+    const {sum, id} = req.body
+    try{
+        const sql = db_two.prepare("UPDATE tranzactions SET tranzaction = tranzaction + ? WHERE id = ?").run(sum, id)
+        const selectTranzaction = db_two.prepare("SELECT tranzaction FROM tranzactions WHERE id = ?").get(id)
         res.json({
-            log: false
+            tranzaction: selectTranzaction.tranzaction
         })
     }
-    else {
+    catch (err) {
+        console.log(err)
+    }
+} )
+
+app.post("/api/reg", (req, res) => {
+    const {login, password} = req.body
+    const sql = db.prepare("INSERT INTO users (login, password) VALUES(?, ?)").run(login, password)
+    const setTranzaction = db_two.prepare("INSERT INTO tranzactions (tranzaction) VALUES(?)").run(0)
+    res.json({
+        login: login,
+        password: password,
+        id: sql.lastInsertRowid,
+        isLogin: true
+    })
+})
+
+
+app.post("/api/log", (req, res) => {
+    const {login, password} = req.body
+    const sql = db.prepare("SELECT id FROM users WHERE login = ? AND password = ?").get(login, password)
+    if (sql === undefined) {
         res.json({
-            log: true,
+            isLogin: false
+        })
+    }
+    else{
+        res.json({
             login: login,
             password: password,
-            id: selectId.id
+            id: sql.id,
+            isLogin: true
         })
     }
 })
 
-
-app.listen(port, '0.0.0.0', () => console.log(`Server starting on port ${port}`));
+app.listen(PORT, () => {
+    console.log(`Server starting on port ${PORT}`)
+})
